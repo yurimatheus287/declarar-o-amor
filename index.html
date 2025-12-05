@@ -299,30 +299,77 @@
         }
 
         .photo-gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin: 30px auto;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             animation: slideUp 1s ease-out 0.6s both;
         }
 
-        .photo-item {
+        .slideshow-container {
             position: relative;
-            border-radius: 15px;
-            overflow: hidden;
-            aspect-ratio: 1;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease;
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: rgba(0,0,0,0.2);
         }
 
-        .photo-item:hover {
-            transform: scale(1.05) rotate(2deg);
+        .photo-item {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            animation: fadeInSlide 1s ease-in-out;
+        }
+
+        .photo-item.active {
+            display: block;
+        }
+
+        @keyframes fadeInSlide {
+            from {
+                opacity: 0;
+                transform: scale(1.1);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
 
         .photo-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+
+        .slideshow-dots {
+            text-align: center;
+            padding: 20px;
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            z-index: 10;
+        }
+
+        .dot {
+            height: 12px;
+            width: 12px;
+            margin: 0 5px;
+            background-color: rgba(255,255,255,0.5);
+            border-radius: 50%;
+            display: inline-block;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .dot.active {
+            background-color: white;
+            transform: scale(1.3);
         }
 
         .message-section {
@@ -352,29 +399,44 @@
             position: fixed;
             bottom: 30px;
             right: 30px;
-            background: rgba(255, 255, 255, 0.25);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15));
             backdrop-filter: blur(10px);
             border-radius: 50%;
-            width: 70px;
-            height: 70px;
+            width: 80px;
+            height: 80px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
             transition: all 0.3s ease;
             z-index: 100;
+            border: 3px solid rgba(255,255,255,0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 10px 35px rgba(255,255,255,0.4);
+            }
         }
 
         .music-control:hover {
-            transform: scale(1.1);
-            background: rgba(255, 255, 255, 0.35);
+            transform: scale(1.15);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.25));
+            border-color: white;
         }
 
         .music-control svg {
-            width: 35px;
-            height: 35px;
+            width: 40px;
+            height: 40px;
             fill: white;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         }
 
         .edit-btn-container {
@@ -517,7 +579,10 @@
                 </div>
             </div>
 
-            <div class="photo-gallery" id="photoGallery"></div>
+            <div class="photo-gallery" id="photoGallery">
+                <div class="slideshow-container" id="slideshowContainer"></div>
+                <div class="slideshow-dots" id="slideshowDots"></div>
+            </div>
 
             <div class="message-section">
                 <h2>💌 Mensagem Especial</h2>
@@ -635,15 +700,28 @@
                     
                     document.getElementById('loveMessage').textContent = data.loveText;
 
-                    // Adicionar fotos
-                    const gallery = document.getElementById('photoGallery');
-                    gallery.innerHTML = '';
+                    // Adicionar fotos ao slideshow
+                    const slideshowContainer = document.getElementById('slideshowContainer');
+                    const dotsContainer = document.getElementById('slideshowDots');
+                    slideshowContainer.innerHTML = '';
+                    dotsContainer.innerHTML = '';
+                    
                     data.photos.forEach((photo, index) => {
                         const photoDiv = document.createElement('div');
                         photoDiv.className = 'photo-item';
+                        if (index === 0) photoDiv.classList.add('active');
                         photoDiv.innerHTML = `<img src="${photo}" alt="Foto ${index + 1}">`;
-                        gallery.appendChild(photoDiv);
+                        slideshowContainer.appendChild(photoDiv);
+
+                        const dot = document.createElement('span');
+                        dot.className = 'dot';
+                        if (index === 0) dot.classList.add('active');
+                        dot.onclick = () => showSlide(index);
+                        dotsContainer.appendChild(dot);
                     });
+
+                    // Iniciar slideshow automático
+                    startSlideshow();
 
                     // Configurar música
                     if (data.musicUrl) {
@@ -679,6 +757,41 @@
             } catch (error) {
                 console.error('Erro ao carregar:', error);
             }
+        }
+
+        // Slideshow automático
+        let currentSlide = 0;
+        let slideshowInterval;
+
+        function showSlide(n) {
+            const slides = document.getElementsByClassName('photo-item');
+            const dots = document.getElementsByClassName('dot');
+            
+            if (slides.length === 0) return;
+
+            if (n >= slides.length) currentSlide = 0;
+            if (n < 0) currentSlide = slides.length - 1;
+            else currentSlide = n;
+
+            for (let i = 0; i < slides.length; i++) {
+                slides[i].classList.remove('active');
+                if (dots[i]) dots[i].classList.remove('active');
+            }
+
+            slides[currentSlide].classList.add('active');
+            if (dots[currentSlide]) dots[currentSlide].classList.add('active');
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function startSlideshow() {
+            slideshowInterval = setInterval(nextSlide, 4000); // Troca a cada 4 segundos
+        }
+
+        function stopSlideshow() {
+            clearInterval(slideshowInterval);
         }
 
         // Contador de tempo
