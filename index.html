@@ -689,6 +689,7 @@
 
     <audio id="backgroundMusic" loop></audio>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         let savedPhotos = [];
         let musicPlaying = false;
@@ -953,20 +954,25 @@
             container.innerHTML = '';
             linkElement.textContent = currentUrl;
             
-            // Criar QR Code usando uma biblioteca CDN
-            const qrCodeScript = document.createElement('script');
-            qrCodeScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-            qrCodeScript.onload = function() {
-                new QRCode(container, {
-                    text: currentUrl,
-                    width: 256,
-                    height: 256,
-                    colorDark: '#667eea',
-                    colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-            };
-            document.head.appendChild(qrCodeScript);
+            // Verificar se a biblioteca QRCode está carregada
+            if (typeof QRCode !== 'undefined') {
+                try {
+                    new QRCode(container, {
+                        text: currentUrl,
+                        width: 256,
+                        height: 256,
+                        colorDark: '#667eea',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                } catch (error) {
+                    console.error('Erro ao gerar QR Code:', error);
+                    container.innerHTML = '<p style="color: red;">Erro ao gerar QR Code. Tente recarregar a página.</p>';
+                }
+            } else {
+                container.innerHTML = '<p style="color: orange;">Carregando gerador de QR Code...</p>';
+                setTimeout(generateQRCode, 500);
+            }
             
             modal.classList.add('active');
         }
