@@ -492,8 +492,60 @@
             }
         }
 
-        .hidden {
+        .modal {
             display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            color: #333;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .modal-content h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        #qrCodeContainer {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            display: inline-block;
+        }
+
+        #qrCodeContainer canvas {
+            display: block;
+            margin: 0 auto;
         }
 
         .step-indicator {
@@ -598,7 +650,28 @@
             </div>
 
             <div class="edit-btn-container">
+                <button class="edit-button" onclick="generateQRCode()">📱 Gerar QR Code</button>
                 <button class="edit-button" onclick="resetDeclaration()">🔄 Refazer Declaração</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal do QR Code -->
+    <div class="modal" id="qrModal">
+        <div class="modal-content qr-modal">
+            <h2>📱 QR Code da Declaração</h2>
+            <p style="color: #666; margin-bottom: 20px;">Mostre este QR Code para sua namorada escanear!</p>
+            
+            <div id="qrCodeContainer" style="text-align: center; margin: 30px 0;"></div>
+            
+            <p style="color: #666; font-size: 0.9em; margin: 20px 0;">
+                Ou compartilhe o link diretamente:<br>
+                <strong id="shareLink" style="color: #667eea; word-break: break-all;"></strong>
+            </p>
+            
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="downloadQRCode()">💾 Baixar QR Code</button>
+                <button class="btn btn-secondary" onclick="closeQRModal()">Fechar</button>
             </div>
         </div>
     </div>
@@ -866,6 +939,49 @@
                 document.getElementById('photoPreviewGrid').innerHTML = '';
                 document.getElementById('setupScreen').style.display = 'flex';
                 document.getElementById('mainScreen').classList.remove('active');
+            }
+        }
+
+        // Gerar QR Code
+        function generateQRCode() {
+            const currentUrl = window.location.href;
+            const modal = document.getElementById('qrModal');
+            const container = document.getElementById('qrCodeContainer');
+            const linkElement = document.getElementById('shareLink');
+            
+            // Limpar container
+            container.innerHTML = '';
+            linkElement.textContent = currentUrl;
+            
+            // Criar QR Code usando uma biblioteca CDN
+            const qrCodeScript = document.createElement('script');
+            qrCodeScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+            qrCodeScript.onload = function() {
+                new QRCode(container, {
+                    text: currentUrl,
+                    width: 256,
+                    height: 256,
+                    colorDark: '#667eea',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            };
+            document.head.appendChild(qrCodeScript);
+            
+            modal.classList.add('active');
+        }
+
+        function closeQRModal() {
+            document.getElementById('qrModal').classList.remove('active');
+        }
+
+        function downloadQRCode() {
+            const canvas = document.querySelector('#qrCodeContainer canvas');
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = 'qrcode-declaracao-amor.png';
+                link.href = canvas.toDataURL();
+                link.click();
             }
         }
 
